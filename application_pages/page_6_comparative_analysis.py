@@ -4,26 +4,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def plot_comparative_metrics(metrics_values, labels, metric_name, title):
     """Plots comparative bar charts for given metrics."""
-    
+
     df = pd.DataFrame({
         'Model': labels,
         metric_name: metrics_values
     })
-    
+
     fig, ax = plt.subplots(figsize=(8, 6))
     sns.barplot(x='Model', y=metric_name, data=df, palette='viridis', ax=ax)
-    
+
     if metric_name in ['SPD', 'EOD']:
         ax.axhline(0, color='grey', linestyle='--', linewidth=0.8)
-    
+
     ax.set_title(title)
     ax.set_ylabel(metric_name)
     ax.set_xlabel("Model Type")
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     return fig
+
 
 def main():
     st.header("Comparative Analysis of Models")
@@ -40,10 +42,12 @@ def main():
         "adjusted_accuracy", "adjusted_spd", "adjusted_eod"
     ]
 
-    missing_metrics = [m for m in metrics_to_check if m not in st.session_state or st.session_state[m] is None]
+    missing_metrics = [
+        m for m in metrics_to_check if m not in st.session_state or st.session_state[m] is None]
 
     if missing_metrics:
-        st.warning(f"Please ensure all models are trained and evaluated. Missing metrics: {', '.join(missing_metrics)}")
+        st.warning(
+            f"Please ensure all models are trained and evaluated. Missing metrics: {', '.join(missing_metrics)}")
         st.info("Navigate to 'Baseline Model Training', 'Fairness Analysis', and 'Bias Mitigation' to complete all steps.")
         return
 
@@ -51,7 +55,7 @@ def main():
 
     # Collect all metrics
     labels = ["Baseline", "Reweighed", "Threshold Adjusted"]
-    
+
     accuracies = [
         st.session_state.baseline_accuracy,
         st.session_state.reweighed_accuracy,
@@ -83,23 +87,26 @@ def main():
     st.subheader("Visual Comparison")
 
     # Plot Accuracy
-    fig_accuracy = plot_comparative_metrics(accuracies, labels, 'Accuracy', 'Model Accuracy Comparison')
+    fig_accuracy = plot_comparative_metrics(
+        accuracies, labels, 'Accuracy', 'Model Accuracy Comparison')
     st.pyplot(fig_accuracy)
     plt.close(fig_accuracy)
     st.info("Higher accuracy is generally better, but we need to consider fairness trade-offs.")
 
     # Plot SPD
-    fig_spd = plot_comparative_metrics(spds, labels, 'SPD', 'Statistical Parity Difference Comparison')
+    fig_spd = plot_comparative_metrics(
+        spds, labels, 'SPD', 'Statistical Parity Difference Comparison')
     st.pyplot(fig_spd)
     plt.close(fig_spd)
     st.info("SPD closer to 0 indicates better statistical parity (equal positive prediction rates across groups).")
 
     # Plot EOD
-    fig_eod = plot_comparative_metrics(eods, labels, 'EOD', 'Equal Opportunity Difference Comparison')
+    fig_eod = plot_comparative_metrics(
+        eods, labels, 'EOD', 'Equal Opportunity Difference Comparison')
     st.pyplot(fig_eod)
     plt.close(fig_eod)
     st.info("EOD closer to 0 indicates better equal opportunity (equal true positive rates across groups).")
-    
+
     st.markdown("""
     #### Interpretation of Results:
     *   Observe how bias mitigation techniques impact both model performance (accuracy) and fairness metrics (SPD, EOD).

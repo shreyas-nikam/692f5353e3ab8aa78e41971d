@@ -13,6 +13,7 @@ from aif360.algorithms.preprocessing import Reweighing
 # For self-containment, I'll include necessary helper functions here too or adapt.
 # For plot_confusion_matrix, I'll just redefine it to avoid circular imports.
 
+
 def plot_confusion_matrix(y_true, y_pred, title="Confusion Matrix"):
     """Plots a confusion matrix."""
     cm = confusion_matrix(y_true, y_pred)
@@ -25,6 +26,7 @@ def plot_confusion_matrix(y_true, y_pred, title="Confusion Matrix"):
     ax.set_title(title)
     return fig
 
+
 def create_aif360_dataset_for_mitigation(X_df, y_series, protected_attribute_names, privileged_groups, unprivileged_groups):
     """
     Creates an AIF360 BinaryLabelDataset from preprocessed data for mitigation algorithms.
@@ -35,8 +37,8 @@ def create_aif360_dataset_for_mitigation(X_df, y_series, protected_attribute_nam
     privileged/unprivileged values (0 or 1 for one-hot encoded).
     """
     df_aif = X_df.copy()
-    df_aif['credit'] = y_series.values # Add target column
-    
+    df_aif['credit'] = y_series.values  # Add target column
+
     # Use the keys from the group definitions to derive the actual protected attribute names for AIF360
     actual_protected_attribute_names_for_aif = protected_attribute_names
 
@@ -49,20 +51,22 @@ def create_aif360_dataset_for_mitigation(X_df, y_series, protected_attribute_nam
     )
     return bld
 
+
 def calculate_fairness_metrics(dataset_true, dataset_pred, privileged_groups, unprivileged_groups):
     """Calculates Statistical Parity Difference (SPD) and Equal Opportunity Difference (EOD)."""
-    
+
     metric = ClassificationMetric(
         dataset_true,
         dataset_pred,
         unprivileged_groups=unprivileged_groups,
         privileged_groups=privileged_groups
     )
-    
+
     spd = metric.statistical_parity_difference()
     eod = metric.equal_opportunity_difference()
-    
+
     return spd, eod
+
 
 def main():
     st.header("Bias Mitigation")
@@ -94,7 +98,8 @@ def main():
        "protected_attribute_names" not in st.session_state or \
        "aif360_privileged_groups" not in st.session_state or \
        "aif360_unprivileged_groups" not in st.session_state:
-        st.warning("Please ensure data is loaded/preprocessed and the 'Baseline Model' is trained.")
+        st.warning(
+            "Please ensure data is loaded/preprocessed and the 'Baseline Model' is trained.")
         return
 
     # Initialize session state for mitigated models and metrics
@@ -110,7 +115,7 @@ def main():
         st.session_state.reweighed_spd = None
     if "reweighed_eod" not in st.session_state:
         st.session_state.reweighed_eod = None
-    
+
     if "adjusted_accuracy" not in st.session_state:
         st.session_state.adjusted_accuracy = None
     if "adjusted_spd" not in st.session_state:
@@ -135,7 +140,8 @@ def main():
                 )
 
                 if dataset_orig_train is None:
-                    st.error("Failed to create AIF360 training dataset for Reweighing.")
+                    st.error(
+                        "Failed to create AIF360 training dataset for Reweighing.")
                     return
 
                 # Reweighing algorithm
@@ -149,32 +155,38 @@ def main():
                 sample_weights = dataset_transf_train.instance_weights
 
                 # Retrain Logistic Regression model with sample weights
-                reweighed_model = LogisticRegression(random_state=42, solver='liblinear')
-                reweighed_model.fit(st.session_state.X_train_df, st.session_state.y_train, sample_weight=sample_weights)
+                reweighed_model = LogisticRegression(
+                    random_state=42, solver='liblinear')
+                reweighed_model.fit(
+                    st.session_state.X_train_df, st.session_state.y_train, sample_weight=sample_weights)
                 st.session_state.reweighed_model = reweighed_model
 
                 # Make predictions
-                y_pred_reweighed = reweighed_model.predict(st.session_state.X_test_df)
-                y_proba_reweighed = reweighed_model.predict_proba(st.session_state.X_test_df)[:, 1]
-                
+                y_pred_reweighed = reweighed_model.predict(
+                    st.session_state.X_test_df)
+                y_proba_reweighed = reweighed_model.predict_proba(
+                    st.session_state.X_test_df)[:, 1]
+
                 st.session_state.reweighed_predictions = y_pred_reweighed
                 st.session_state.reweighed_probabilities = y_proba_reweighed
 
                 # Evaluate performance
-                st.session_state.reweighed_accuracy = accuracy_score(st.session_state.y_test, y_pred_reweighed)
+                st.session_state.reweighed_accuracy = accuracy_score(
+                    st.session_state.y_test, y_pred_reweighed)
 
                 # Calculate fairness metrics
                 dataset_true_test = create_aif360_dataset_for_mitigation(
-                    st.session_state.X_test_df, 
+                    st.session_state.X_test_df,
                     st.session_state.y_test,
                     st.session_state.protected_attribute_names,
                     st.session_state.aif360_privileged_groups,
                     st.session_state.aif360_unprivileged_groups
                 )
-                
+
                 dataset_pred_reweighed = dataset_true_test.copy()
                 dataset_pred_reweighed.labels = y_pred_reweighed.reshape(-1, 1)
-                dataset_pred_reweighed.scores = y_proba_reweighed.reshape(-1, 1)
+                dataset_pred_reweighed.scores = y_proba_reweighed.reshape(
+                    -1, 1)
 
                 st.session_state.reweighed_spd, st.session_state.reweighed_eod = calculate_fairness_metrics(
                     dataset_true_test,
@@ -183,16 +195,19 @@ def main():
                     st.session_state.aif360_unprivileged_groups
                 )
 
-                st.success("Reweighing applied and model retrained successfully!")
+                st.success(
+                    "Reweighing applied and model retrained successfully!")
                 st.subheader("Reweighed Model Performance & Fairness")
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Accuracy", f"{st.session_state.reweighed_accuracy:.4f}")
+                col1.metric(
+                    "Accuracy", f"{st.session_state.reweighed_accuracy:.4f}")
                 col2.metric("SPD", f"{st.session_state.reweighed_spd:.4f}")
                 col3.metric("EOD", f"{st.session_state.reweighed_eod:.4f}")
 
                 st.markdown("---")
                 st.subheader("Confusion Matrix (Reweighed Model)")
-                fig_cm_reweighed = plot_confusion_matrix(st.session_state.y_test, y_pred_reweighed, "Reweighed Model Confusion Matrix")
+                fig_cm_reweighed = plot_confusion_matrix(
+                    st.session_state.y_test, y_pred_reweighed, "Reweighed Model Confusion Matrix")
                 st.pyplot(fig_cm_reweighed)
                 plt.close(fig_cm_reweighed)
 
@@ -201,20 +216,24 @@ def main():
     else:
         if st.session_state.reweighed_model is not None:
             st.info("Reweighed model is already trained.")
-            st.subheader("Reweighed Model Performance & Fairness (Pre-calculated)")
+            st.subheader(
+                "Reweighed Model Performance & Fairness (Pre-calculated)")
             col1, col2, col3 = st.columns(3)
-            col1.metric("Accuracy", f"{st.session_state.reweighed_accuracy:.4f}")
+            col1.metric(
+                "Accuracy", f"{st.session_state.reweighed_accuracy:.4f}")
             col2.metric("SPD", f"{st.session_state.reweighed_spd:.4f}")
             col3.metric("EOD", f"{st.session_state.reweighed_eod:.4f}")
-            
+
             st.markdown("---")
             st.subheader("Confusion Matrix (Reweighed Model)")
-            fig_cm_reweighed = plot_confusion_matrix(st.session_state.y_test, st.session_state.reweighed_predictions, "Reweighed Model Confusion Matrix")
+            fig_cm_reweighed = plot_confusion_matrix(
+                st.session_state.y_test, st.session_state.reweighed_predictions, "Reweighed Model Confusion Matrix")
             st.pyplot(fig_cm_reweighed)
             plt.close(fig_cm_reweighed)
         else:
-            st.info("Click the button above to apply reweighing and retrain the model.")
-            
+            st.info(
+                "Click the button above to apply reweighing and retrain the model.")
+
     st.markdown("---")
     st.subheader("Apply Classification Threshold Adjustment")
 
@@ -222,7 +241,8 @@ def main():
         with st.spinner("Applying threshold adjustment..."):
             try:
                 if "baseline_model" not in st.session_state or "baseline_probabilities" not in st.session_state:
-                    st.error("Baseline model and its probabilities are required for threshold adjustment. Please train the baseline model first.")
+                    st.error(
+                        "Baseline model and its probabilities are required for threshold adjustment. Please train the baseline model first.")
                     return
 
                 # Predictions from the baseline model are used for threshold adjustment
@@ -230,62 +250,69 @@ def main():
 
                 # Create AIF360 dataset for true labels for evaluation
                 dataset_true_test = create_aif360_dataset_for_mitigation(
-                    st.session_state.X_test_df, 
+                    st.session_state.X_test_df,
                     st.session_state.y_test,
                     st.session_state.protected_attribute_names,
                     st.session_state.aif360_privileged_groups,
                     st.session_state.aif360_unprivileged_groups
                 )
-                
+
                 if dataset_true_test is None:
-                    st.error("Failed to create AIF360 test dataset for threshold adjustment evaluation.")
+                    st.error(
+                        "Failed to create AIF360 test dataset for threshold adjustment evaluation.")
                     return
-                
+
                 # Assign baseline probabilities to the AIF360 dataset for threshold optimization
                 dataset_pred_optim = dataset_true_test.copy()
                 dataset_pred_optim.scores = y_proba_baseline.reshape(-1, 1)
 
-                
-                best_threshold = 0.5 # Start with default
-                best_spd_abs = abs(st.session_state.baseline_spd) if st.session_state.baseline_spd is not None else 1.0
-                
+                best_threshold = 0.5  # Start with default
+                best_spd_abs = abs(
+                    st.session_state.baseline_spd) if st.session_state.baseline_spd is not None else 1.0
+
                 # Search for a better threshold for the unprivileged group if SPD is negative (privileged favored)
                 # Or for the privileged group if SPD is positive (unprivileged favored)
-                
+
                 # This is a very basic grid search for illustration.
                 thresholds = np.linspace(0.01, 0.99, 50)
-                
+
                 for thresh in thresholds:
                     # Apply threshold to predict for the specific group or globally to see effect
                     # For simplicity, let's try a global threshold optimization here for a better SPD/EOD.
-                    y_pred_adjusted_temp = (y_proba_baseline >= thresh).astype(int)
-                    
+                    y_pred_adjusted_temp = (
+                        y_proba_baseline >= thresh).astype(int)
+
                     dataset_pred_temp = dataset_true_test.copy()
-                    dataset_pred_temp.labels = y_pred_adjusted_temp.reshape(-1, 1)
-                    
+                    dataset_pred_temp.labels = y_pred_adjusted_temp.reshape(
+                        -1, 1)
+
                     temp_spd, _ = calculate_fairness_metrics(
                         dataset_true_test,
                         dataset_pred_temp,
                         st.session_state.aif360_privileged_groups,
                         st.session_state.aif360_unprivileged_groups
                     )
-                    
+
                     if abs(temp_spd) < best_spd_abs:
                         best_spd_abs = abs(temp_spd)
                         best_threshold = thresh
 
-                st.info(f"Optimized global threshold found: {best_threshold:.4f} (from baseline probabilities)")
+                st.info(
+                    f"Optimized global threshold found: {best_threshold:.4f} (from baseline probabilities)")
 
                 # Apply the best threshold to get adjusted predictions
-                y_pred_adjusted = (y_proba_baseline >= best_threshold).astype(int)
+                y_pred_adjusted = (y_proba_baseline >=
+                                   best_threshold).astype(int)
                 st.session_state.threshold_adjusted_predictions = y_pred_adjusted
 
                 # Evaluate performance and fairness with adjusted predictions
-                st.session_state.adjusted_accuracy = accuracy_score(st.session_state.y_test, y_pred_adjusted)
-                
+                st.session_state.adjusted_accuracy = accuracy_score(
+                    st.session_state.y_test, y_pred_adjusted)
+
                 dataset_pred_adjusted = dataset_true_test.copy()
                 dataset_pred_adjusted.labels = y_pred_adjusted.reshape(-1, 1)
-                dataset_pred_adjusted.scores = y_proba_baseline.reshape(-1, 1) # Still use original probabilities as scores
+                # Still use original probabilities as scores
+                dataset_pred_adjusted.scores = y_proba_baseline.reshape(-1, 1)
 
                 st.session_state.adjusted_spd, st.session_state.adjusted_eod = calculate_fairness_metrics(
                     dataset_true_test,
@@ -294,35 +321,41 @@ def main():
                     st.session_state.aif360_unprivileged_groups
                 )
 
-                st.success(f"Threshold adjusted to {best_threshold:.4f} and model re-evaluated!")
+                st.success(
+                    f"Threshold adjusted to {best_threshold:.4f} and model re-evaluated!")
                 st.subheader("Threshold-Adjusted Model Performance & Fairness")
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Accuracy", f"{st.session_state.adjusted_accuracy:.4f}")
+                col1.metric(
+                    "Accuracy", f"{st.session_state.adjusted_accuracy:.4f}")
                 col2.metric("SPD", f"{st.session_state.adjusted_spd:.4f}")
                 col3.metric("EOD", f"{st.session_state.adjusted_eod:.4f}")
 
                 st.markdown("---")
                 st.subheader("Confusion Matrix (Threshold-Adjusted Model)")
-                fig_cm_adjusted = plot_confusion_matrix(st.session_state.y_test, y_pred_adjusted, "Threshold-Adjusted Model Confusion Matrix")
+                fig_cm_adjusted = plot_confusion_matrix(
+                    st.session_state.y_test, y_pred_adjusted, "Threshold-Adjusted Model Confusion Matrix")
                 st.pyplot(fig_cm_adjusted)
                 plt.close(fig_cm_adjusted)
-
 
             except Exception as e:
                 st.error(f"Error applying threshold adjustment: {e}")
     else:
         if st.session_state.threshold_adjusted_predictions is not None:
             st.info("Threshold adjustment has been applied and re-evaluated.")
-            st.subheader("Threshold-Adjusted Model Performance & Fairness (Pre-calculated)")
+            st.subheader(
+                "Threshold-Adjusted Model Performance & Fairness (Pre-calculated)")
             col1, col2, col3 = st.columns(3)
-            col1.metric("Accuracy", f"{st.session_state.adjusted_accuracy:.4f}")
+            col1.metric(
+                "Accuracy", f"{st.session_state.adjusted_accuracy:.4f}")
             col2.metric("SPD", f"{st.session_state.adjusted_spd:.4f}")
             col3.metric("EOD", f"{st.session_state.adjusted_eod:.4f}")
-            
+
             st.markdown("---")
             st.subheader("Confusion Matrix (Threshold-Adjusted Model)")
-            fig_cm_adjusted = plot_confusion_matrix(st.session_state.y_test, st.session_state.threshold_adjusted_predictions, "Threshold-Adjusted Model Confusion Matrix")
+            fig_cm_adjusted = plot_confusion_matrix(
+                st.session_state.y_test, st.session_state.threshold_adjusted_predictions, "Threshold-Adjusted Model Confusion Matrix")
             st.pyplot(fig_cm_adjusted)
             plt.close(fig_cm_adjusted)
         else:
-            st.info("Click the button above to apply threshold adjustment and re-evaluate the baseline model.")
+            st.info(
+                "Click the button above to apply threshold adjustment and re-evaluate the baseline model.")

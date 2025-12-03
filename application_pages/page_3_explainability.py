@@ -9,6 +9,7 @@ import matplotlib.cm as cm
 
 # --- Helper Functions ---
 
+
 def plot_lime_explanation(explanation, title="LIME Explanation"):
     """Plots a LIME explanation."""
     fig = explanation.as_pyplot_figure()
@@ -16,46 +17,52 @@ def plot_lime_explanation(explanation, title="LIME Explanation"):
     plt.tight_layout()
     return fig
 
+
 def plot_shap_summary(shap_values, feature_names, title="SHAP Global Feature Importance"):
     """Plots a SHAP summary plot."""
-    fig, ax = plt.subplots(figsize=(10, 7))
+    plt.figure(figsize=(10, 7))
     # For LinearExplainer, shap_values is a single array (for one class) or list of arrays (for multi-class)
     # For binary classification with LogisticRegression, shap_values is an array of shape (n_samples, n_features).
     # If it's a list, take the values for the positive class.
     if isinstance(shap_values, list):
-        shap_values_to_plot = shap_values[1] # Take SHAP values for the positive class (1)
+        # Take SHAP values for the positive class (1)
+        shap_values_to_plot = shap_values[1]
     else:
         shap_values_to_plot = shap_values
-        
-    shap.summary_plot(shap_values_to_plot, features=pd.DataFrame(shap_values_to_plot, columns=feature_names), feature_names=feature_names, show=False, ax=ax)
-    ax.set_title(title)
+
+    shap.summary_plot(shap_values_to_plot, features=pd.DataFrame(
+        shap_values_to_plot, columns=feature_names), feature_names=feature_names, show=False)
+    plt.title(title)
     plt.tight_layout()
-    return fig
+    return plt.gcf()
+
 
 def plot_shap_dependence(shap_values, feature_names, feature, interaction_feature=None, title="SHAP Dependence Plot"):
     """Plots a SHAP dependence plot."""
-    fig, ax = plt.subplots(figsize=(10, 7))
-    
+    plt.figure(figsize=(10, 7))
+
     if isinstance(shap_values, list):
-        shap_values_to_plot = shap_values[1] # Take SHAP values for the positive class (1)
+        # Take SHAP values for the positive class (1)
+        shap_values_to_plot = shap_values[1]
     else:
         shap_values_to_plot = shap_values
-        
+
     shap.dependence_plot(ind=feature,
                          shap_values=shap_values_to_plot,
-                         features=pd.DataFrame(shap_values_to_plot, columns=feature_names),
+                         features=pd.DataFrame(
+                             shap_values_to_plot, columns=feature_names),
                          feature_names=feature_names,
                          interaction_index=interaction_feature,
-                         show=False,
-                         ax=ax)
-    ax.set_title(f"{title} for {feature}")
+                         show=False)
+    plt.title(f"{title} for {feature}")
     plt.tight_layout()
-    return fig
+    return plt.gcf()
+
 
 def main():
     st.header("Explainability (LIME & SHAP)")
 
-    st.markdown("""
+    st.markdown(r"""
     Understanding *why* an AI model makes a particular decision is crucial for trust and transparency, especially in sensitive domains like credit lending.
     This section explores two powerful explainability techniques: **LIME (Local Interpretable Model-agnostic Explanations)** for individual predictions and **SHAP (SHapley Additive exPlanations)** for global model behavior.
 
@@ -96,15 +103,18 @@ def main():
 
     # Select instance for LIME
     max_idx = len(X_test_df) - 1
-    selected_instance_idx = st.slider("Select Test Instance Index for LIME Explanation", min_value=0, max_value=max_idx, value=0, key="lime_idx")
+    selected_instance_idx = st.slider(
+        "Select Test Instance Index for LIME Explanation", min_value=0, max_value=max_idx, value=0, key="lime_idx")
     st.session_state.selected_instance_idx = selected_instance_idx
 
     st.markdown(f"**Selected instance details (first 5 features):**")
     st.dataframe(X_test_df.iloc[[selected_instance_idx]].head())
-    st.write(f"**True Label:** {st.session_state.y_test.iloc[selected_instance_idx]} (0=Bad Credit, 1=Good Credit)")
-    st.write(f"**Predicted Label:** {baseline_model.predict(X_test_df.iloc[[selected_instance_idx]])[0]} (0=Bad Credit, 1=Good Credit)")
-    st.write(f"**Predicted Probability (Good Credit):** {baseline_model.predict_proba(X_test_df.iloc[[selected_instance_idx]])[0, 1]:.4f}")
-
+    st.write(
+        f"**True Label:** {st.session_state.y_test.iloc[selected_instance_idx]} (0=Bad Credit, 1=Good Credit)")
+    st.write(
+        f"**Predicted Label:** {baseline_model.predict(X_test_df.iloc[[selected_instance_idx]])[0]} (0=Bad Credit, 1=Good Credit)")
+    st.write(
+        f"**Predicted Probability (Good Credit):** {baseline_model.predict_proba(X_test_df.iloc[[selected_instance_idx]])[0, 1]:.4f}")
 
     if st.button("Generate LIME Explanation"):
         with st.spinner("Generating LIME explanation..."):
@@ -120,29 +130,32 @@ def main():
                 explanation = explainer.explain_instance(
                     data_row=X_test_df.iloc[selected_instance_idx].values,
                     predict_fn=baseline_model.predict_proba,
-                    num_features=10 # Explain top 10 features
+                    num_features=10  # Explain top 10 features
                 )
-                
+
                 st.session_state.lime_explanation = explanation
 
                 st.subheader("LIME Explanation for Selected Instance")
                 st.info("The bars represent the contribution of each feature to the model's prediction for this specific instance. Positive values (green) indicate features pushing towards 'Good Credit', while negative values (red) push towards 'Bad Credit'.")
-                
-                fig_lime = plot_lime_explanation(explanation, f"LIME Explanation for Instance {selected_instance_idx}")
+
+                fig_lime = plot_lime_explanation(
+                    explanation, f"LIME Explanation for Instance {selected_instance_idx}")
                 st.pyplot(fig_lime)
                 plt.close(fig_lime)
 
             except Exception as e:
                 st.error(f"Error generating LIME explanation: {e}")
-    
+
     if "lime_explanation" in st.session_state:
-        st.subheader("Current LIME Explanation for Instance " + str(st.session_state.selected_instance_idx))
+        st.subheader("Current LIME Explanation for Instance " +
+                     str(st.session_state.selected_instance_idx))
         st.info("The bars represent the contribution of each feature to the model's prediction for this specific instance. Positive values (green) indicate features pushing towards 'Good Credit', while negative values (red) push towards 'Bad Credit'.")
-        fig_lime = plot_lime_explanation(st.session_state.lime_explanation, f"LIME Explanation for Instance {st.session_state.selected_instance_idx}")
+        fig_lime = plot_lime_explanation(
+            st.session_state.lime_explanation, f"LIME Explanation for Instance {st.session_state.selected_instance_idx}")
         st.pyplot(fig_lime)
         plt.close(fig_lime)
-    
-    st.markdown("""
+
+    st.markdown(r"""
     ---
 
     ### 📈 Global Explainability: SHAP (SHapley Additive exPlanations)
@@ -171,9 +184,11 @@ def main():
     if "shap_explainer_baseline" not in st.session_state:
         with st.spinner("Initializing SHAP Explainer (this may take a moment)..."):
             try:
+                # Create a masker for the background data
+                masker = shap.maskers.Independent(data=st.session_state.X_train_df)
                 st.session_state.shap_explainer_baseline = shap.LinearExplainer(
                     model=baseline_model,
-                    data=st.session_state.X_train_df # Use training data for background distribution
+                    masker=masker
                 )
                 st.success("SHAP Explainer initialized.")
             except Exception as e:
@@ -182,7 +197,8 @@ def main():
     if "shap_values_baseline" not in st.session_state and "shap_explainer_baseline" in st.session_state:
         with st.spinner("Calculating SHAP values for the test set (this may take a moment)..."):
             try:
-                st.session_state.shap_values_baseline = st.session_state.shap_explainer_baseline.shap_values(st.session_state.X_test_df)
+                st.session_state.shap_values_baseline = st.session_state.shap_explainer_baseline.shap_values(
+                    st.session_state.X_test_df)
                 st.success("SHAP values calculated.")
             except Exception as e:
                 st.error(f"Error calculating SHAP values: {e}")
@@ -196,12 +212,14 @@ def main():
         *   **Color:** Represents the feature value (e.g., red for high, blue for low).
         A high SHAP value (to the right) means the feature is pushing the prediction towards 'Good Credit'.
         """)
-        fig_shap_summary = plot_shap_summary(st.session_state.shap_values_baseline, all_feature_names, "SHAP Summary Plot for Baseline Model")
+        fig_shap_summary = plot_shap_summary(
+            st.session_state.shap_values_baseline, all_feature_names, "SHAP Summary Plot for Baseline Model")
         st.pyplot(fig_shap_summary)
         plt.close(fig_shap_summary)
 
         st.markdown("---")
-        st.markdown("#### SHAP Dependence Plot: Feature Effect and Interactions")
+        st.markdown(
+            "#### SHAP Dependence Plot: Feature Effect and Interactions")
 
         st.info("""
         The SHAP dependence plot illustrates how the value of a single feature affects the prediction.
@@ -215,7 +233,8 @@ def main():
         selected_dependence_feature = st.selectbox(
             "Select Primary Feature for Dependence Plot",
             options=all_feature_names,
-            index=all_feature_names.index("duration_in_month") if "duration_in_month" in all_feature_names else 0,
+            index=all_feature_names.index(
+                "duration_in_month") if "duration_in_month" in all_feature_names else 0,
             key="shap_dep_feature"
         )
         st.session_state.selected_dependence_feature = selected_dependence_feature
@@ -225,7 +244,8 @@ def main():
         selected_interaction_feature = st.selectbox(
             "Select Interaction Feature (Optional)",
             options=interaction_options,
-            index=interaction_options.index("age_years") if "age_years" in interaction_options else (0 if len(interaction_options) > 1 else 0),
+            index=interaction_options.index("age_years") if "age_years" in interaction_options else (
+                0 if len(interaction_options) > 1 else 0),
             key="shap_inter_feature"
         )
         st.session_state.selected_interaction_feature = selected_interaction_feature

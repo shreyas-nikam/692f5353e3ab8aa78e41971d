@@ -8,22 +8,24 @@ import seaborn as sns
 
 # --- Helper Functions ---
 
+
 def plot_confusion_matrix(y_true, y_pred, title="Confusion Matrix"):
     """Plots a confusion matrix."""
     cm = confusion_matrix(y_true, y_pred)
     fig, ax = plt.subplots(figsize=(6, 5))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
-                xticklabels=['Bad Credit (0)', 'Good Credit (1)'] Bedeutschung 'Bad Credit' und 'Good Credit',
-                yticklabels=['Bad Credit (0)', 'Good Credit (1)'] Bedeutschung 'Bad Credit' und 'Good Credit'])
+                xticklabels=['Bad Credit (0)', 'Good Credit (1)'],
+                yticklabels=['Bad Credit (0)', 'Good Credit (1)'])
     ax.set_xlabel("Predicted Label")
     ax.set_ylabel("True Label")
     ax.set_title(title)
     return fig
 
+
 def main():
     st.header("Baseline Model Training and Evaluation")
 
-    st.markdown("""
+    st.markdown(r"""
     In this section, we will train a **Logistic Regression** model as our baseline.
     Logistic Regression is a fundamental classification algorithm, often used for binary outcomes.
     It models the probability of a certain class or event occurring.
@@ -46,7 +48,8 @@ def main():
     # Ensure necessary data is in session state
     if "X_train_df" not in st.session_state or "y_train" not in st.session_state or \
        "X_test_df" not in st.session_state or "y_test" not in st.session_state:
-        st.warning("Please go to 'Data Preparation' and load/preprocess the data first.")
+        st.warning(
+            "Please go to 'Data Preparation' and load/preprocess the data first.")
         return
 
     st.subheader("Train Baseline Logistic Regression Model")
@@ -55,18 +58,22 @@ def main():
         with st.spinner("Training Logistic Regression model..."):
             try:
                 # Initialize and train the model
-                baseline_model = LogisticRegression(random_state=42, solver='liblinear') # liblinear for small datasets
-                baseline_model.fit(st.session_state.X_train_df, st.session_state.y_train)
+                baseline_model = LogisticRegression(
+                    random_state=42, solver='liblinear')  # liblinear for small datasets
+                baseline_model.fit(st.session_state.X_train_df,
+                                   st.session_state.y_train)
                 st.session_state.baseline_model = baseline_model
 
                 # Make predictions
                 y_pred = baseline_model.predict(st.session_state.X_test_df)
-                y_proba = baseline_model.predict_proba(st.session_state.X_test_df)[:, 1]
-                
+                y_proba = baseline_model.predict_proba(
+                    st.session_state.X_test_df)[:, 1]
+
                 st.session_state.baseline_predictions = y_pred
                 st.session_state.baseline_probabilities = y_proba
 
-                st.success("Baseline Logistic Regression model trained successfully!")
+                st.success(
+                    "Baseline Logistic Regression model trained successfully!")
 
                 st.subheader("Model Performance on Test Set")
 
@@ -95,7 +102,8 @@ def main():
                 """)
 
                 st.subheader("Confusion Matrix")
-                fig_cm = plot_confusion_matrix(st.session_state.y_test, y_pred, "Baseline Model Confusion Matrix")
+                fig_cm = plot_confusion_matrix(
+                    st.session_state.y_test, y_pred, "Baseline Model Confusion Matrix")
                 st.pyplot(fig_cm)
                 plt.close(fig_cm)
 
@@ -106,17 +114,23 @@ def main():
                 st.error(f"Error training or evaluating model: {e}")
     else:
         if "baseline_model" in st.session_state and st.session_state.baseline_model is not None:
-            st.info("Baseline model is already trained. Click 'Train Baseline Model' to retrain.")
+            st.info(
+                "Baseline model is already trained. Click 'Train Baseline Model' to retrain.")
             st.subheader("Current Baseline Model Performance")
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Accuracy", f"{st.session_state.baseline_accuracy:.4f}")
-            col2.metric("Precision", f"{st.session_state.baseline_precision:.4f}")
+            col1.metric(
+                "Accuracy", f"{st.session_state.baseline_accuracy:.4f}")
+            col2.metric(
+                "Precision", f"{st.session_state.baseline_precision:.4f}")
             col3.metric("Recall", f"{st.session_state.baseline_recall:.4f}")
             col4.metric("F1-Score", f"{st.session_state.baseline_f1:.4f}")
-            
-            fig_cm = plot_confusion_matrix(st.session_state.y_test, st.session_state.baseline_predictions, "Baseline Model Confusion Matrix")
+
+            fig_cm = plot_confusion_matrix(
+                st.session_state.y_test, st.session_state.baseline_predictions, "Baseline Model Confusion Matrix")
             st.pyplot(fig_cm)
             plt.close(fig_cm)
-            st.text(classification_report(st.session_state.y_test, st.session_state.baseline_predictions))
+            st.text(classification_report(st.session_state.y_test,
+                    st.session_state.baseline_predictions))
         else:
-            st.info("Click the button above to train the baseline Logistic Regression model.")
+            st.info(
+                "Click the button above to train the baseline Logistic Regression model.")
