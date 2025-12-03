@@ -1,1 +1,58 @@
-# Starter Python file
+import streamlit as st
+
+st.set_page_config(page_title="QuLab", layout="wide")
+st.sidebar.image("https://www.quantuniversity.com/assets/img/logo5.jpg")
+st.sidebar.divider()
+st.title("QuLab: AI Credit Decision Explainer")
+st.divider()
+
+st.markdown("""
+In this lab, we explore the **AI Credit Decision Explainer**, an interactive Streamlit application designed to unravel the complexities of AI-driven credit lending. This tool offers a deep dive into model transparency, explainability, and fairness, allowing users to understand the "why" behind credit decisions.
+
+Credit decisions are critical, impacting individuals' lives and financial institutions' risk profiles. As AI models become more prevalent in this domain, it's paramount to ensure they are not only accurate but also fair and understandable. This application helps demystify these black-box models by providing tools to:
+
+*   **Explain individual credit decisions (Local Explainability - LIME):** Understand which specific factors led to a loan approval or denial for a particular applicant.
+*   **Uncover overall model behavior (Global Explainability - SHAP):** Identify the most influential features the model considers across all applicants.
+*   **Detect and quantify biases (Fairness Analysis):** Measure disparities in credit outcomes for different demographic groups, such as by gender or age.
+*   **Evaluate bias mitigation strategies:** See how simple techniques can reduce unfairness while maintaining model performance.
+
+By interacting with this application, users can gain a comprehensive understanding of how AI credit models operate, where biases might arise, and what steps can be taken towards building more responsible and ethical AI systems in finance.
+""")
+
+page_names = [
+    "Home/Overview",
+    "Data Preparation",
+    "Baseline Model Training",
+    "Explainability (LIME & SHAP)",
+    "Fairness Analysis",
+    "Bias Mitigation",
+    "Comparative Analysis",
+    "Summary & Takeaways"
+]
+
+page = st.sidebar.selectbox(label="Navigation", options=page_names)
+
+if page == "Home/Overview":
+    from application_pages.page_0_home import main
+    main()
+elif page == "Data Preparation":
+    from application_pages.page_1_data_preparation import main
+    main()
+elif page == "Baseline Model Training":
+    from application_pages.page_2_baseline_model import main
+    main()
+elif page == "Explainability (LIME & SHAP)":
+    from application_pages.page_3_explainability import main
+    main()
+elif page == "Fairness Analysis":
+    from application_pages.page_4_fairness_analysis import main
+    main()
+elif page == "Bias Mitigation":
+    from application_pages.page_5_bias_mitigation import main
+    main()
+elif page == "Comparative Analysis":
+    from application_pages.page_6_comparative_analysis import main
+    main()
+elif page == "Summary & Takeaways":
+    from application_pages.page_7_summary_takeaways import main
+    main()
