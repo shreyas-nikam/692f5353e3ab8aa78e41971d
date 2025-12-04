@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from aif360.datasets import BinaryLabelDataset
-from aif360.metrics import ClassificationMetric, BinaryLabelDatasetMetric
+from aif360.metrics import ClassificationMetric
 
 # --- Helper Functions ---
 

@@ -5,94 +5,74 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from aif360.datasets import BinaryLabelDataset
-from aif360.metrics import ClassificationMetric, BinaryLabelDatasetMetric
 import io  # Added for df.info()
 
 # --- Helper Functions (can be moved to a separate utils.py if desired, but for this task, keeping in page for self-containment) ---
 
 
 def load_german_credit_data():
-    """Loads the German Credit dataset and returns it as a pandas DataFrame."""
+
+    # Fallback: Load German Credit dataset from UCI repository directly
+    import urllib.request
+
+    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
+
+    # Column names for German Credit dataset
+    column_names = [
+        'status', 'duration', 'credit_history', 'purpose', 'credit_amount',
+        'savings', 'employment', 'installment_rate', 'sex', 'other_debtors',
+        'residence_since', 'property', 'age', 'other_installment_plans',
+        'housing', 'number_credits', 'job', 'people_liable', 'telephone',
+        'foreign_worker', 'credit'
+    ]
+
     try:
-        # Try using AIF360's GermanDataset with a custom path to avoid download issues
-        from aif360.datasets import GermanDataset
-        import tempfile
-        import os
+        # Download and read the data
+        with urllib.request.urlopen(url, timeout=10) as response:
+            df = pd.read_csv(io.BytesIO(response.read()),
+                             sep=' ',
+                             names=column_names,
+                             header=None)
 
-        # Set custom data home to avoid permission/download issues
-        custom_data_home = os.path.join(tempfile.gettempdir(), 'aif360_data')
-        os.makedirs(custom_data_home, exist_ok=True)
+        # Convert target: 1=good (1), 2=bad (0)
+        df['credit'] = df['credit'].map({1: 1, 2: 0})
 
-        # Try to load with custom path
-        german_dataset = GermanDataset(custom_preprocessing=lambda df: df)
-        df = german_dataset.convert_to_dataframe()[0]
+        # Map sex column (A91=male, A92=female, etc.)
+        df['sex'] = df['sex'].map({
+            'A91': 'male', 'A92': 'female', 'A93': 'male', 'A94': 'male', 'A95': 'female'
+        })
 
-    except Exception as e:
-        st.warning(
-            f"Could not load via AIF360 ({str(e)}), using alternative method...")
+    except Exception as e2:
+        st.error(f"Could not download from UCI either: {str(e2)}")
+        st.info("Loading from backup synthetic data...")
 
-        # Fallback: Load German Credit dataset from UCI repository directly
-        import urllib.request
+        # Last resort: Create a small synthetic dataset for demonstration
+        np.random.seed(42)
+        n_samples = 1000
 
-        url = "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
-
-        # Column names for German Credit dataset
-        column_names = [
-            'status', 'duration', 'credit_history', 'purpose', 'credit_amount',
-            'savings', 'employment', 'installment_rate', 'sex', 'other_debtors',
-            'residence_since', 'property', 'age', 'other_installment_plans',
-            'housing', 'number_credits', 'job', 'people_liable', 'telephone',
-            'foreign_worker', 'credit'
-        ]
-
-        try:
-            # Download and read the data
-            with urllib.request.urlopen(url, timeout=10) as response:
-                df = pd.read_csv(io.BytesIO(response.read()),
-                                 sep=' ',
-                                 names=column_names,
-                                 header=None)
-
-            # Convert target: 1=good (1), 2=bad (0)
-            df['credit'] = df['credit'].map({1: 1, 2: 0})
-
-            # Map sex column (A91=male, A92=female, etc.)
-            df['sex'] = df['sex'].map({
-                'A91': 'male', 'A92': 'female', 'A93': 'male', 'A94': 'male', 'A95': 'female'
-            })
-
-        except Exception as e2:
-            st.error(f"Could not download from UCI either: {str(e2)}")
-            st.info("Loading from backup synthetic data...")
-
-            # Last resort: Create a small synthetic dataset for demonstration
-            np.random.seed(42)
-            n_samples = 1000
-
-            df = pd.DataFrame({
-                'status': np.random.choice(['A11', 'A12', 'A13', 'A14'], n_samples),
-                'duration': np.random.randint(6, 72, n_samples),
-                'credit_history': np.random.choice(['A30', 'A31', 'A32', 'A33', 'A34'], n_samples),
-                'purpose': np.random.choice(['A40', 'A41', 'A42', 'A43', 'A44', 'A45', 'A46', 'A48', 'A49', 'A410'], n_samples),
-                'credit_amount': np.random.randint(250, 18424, n_samples),
-                'savings': np.random.choice(['A61', 'A62', 'A63', 'A64', 'A65'], n_samples),
-                'employment': np.random.choice(['A71', 'A72', 'A73', 'A74', 'A75'], n_samples),
-                'installment_rate': np.random.randint(1, 5, n_samples),
-                'sex': np.random.choice(['male', 'female'], n_samples, p=[0.69, 0.31]),
-                'other_debtors': np.random.choice(['A101', 'A102', 'A103'], n_samples),
-                'residence_since': np.random.randint(1, 5, n_samples),
-                'property': np.random.choice(['A121', 'A122', 'A123', 'A124'], n_samples),
-                'age': np.random.randint(19, 75, n_samples),
-                'other_installment_plans': np.random.choice(['A141', 'A142', 'A143'], n_samples),
-                'housing': np.random.choice(['A151', 'A152', 'A153'], n_samples),
-                'number_credits': np.random.randint(1, 5, n_samples),
-                'job': np.random.choice(['A171', 'A172', 'A173', 'A174'], n_samples),
-                'people_liable': np.random.randint(1, 3, n_samples),
-                'telephone': np.random.choice(['A191', 'A192'], n_samples),
-                'foreign_worker': np.random.choice(['A201', 'A202'], n_samples),
-                'credit': np.random.choice([0, 1], n_samples, p=[0.3, 0.7])
-            })
+        df = pd.DataFrame({
+            'status': np.random.choice(['A11', 'A12', 'A13', 'A14'], n_samples),
+            'duration': np.random.randint(6, 72, n_samples),
+            'credit_history': np.random.choice(['A30', 'A31', 'A32', 'A33', 'A34'], n_samples),
+            'purpose': np.random.choice(['A40', 'A41', 'A42', 'A43', 'A44', 'A45', 'A46', 'A48', 'A49', 'A410'], n_samples),
+            'credit_amount': np.random.randint(250, 18424, n_samples),
+            'savings': np.random.choice(['A61', 'A62', 'A63', 'A64', 'A65'], n_samples),
+            'employment': np.random.choice(['A71', 'A72', 'A73', 'A74', 'A75'], n_samples),
+            'installment_rate': np.random.randint(1, 5, n_samples),
+            'sex': np.random.choice(['male', 'female'], n_samples, p=[0.69, 0.31]),
+            'other_debtors': np.random.choice(['A101', 'A102', 'A103'], n_samples),
+            'residence_since': np.random.randint(1, 5, n_samples),
+            'property': np.random.choice(['A121', 'A122', 'A123', 'A124'], n_samples),
+            'age': np.random.randint(19, 75, n_samples),
+            'other_installment_plans': np.random.choice(['A141', 'A142', 'A143'], n_samples),
+            'housing': np.random.choice(['A151', 'A152', 'A153'], n_samples),
+            'number_credits': np.random.randint(1, 5, n_samples),
+            'job': np.random.choice(['A171', 'A172', 'A173', 'A174'], n_samples),
+            'people_liable': np.random.randint(1, 3, n_samples),
+            'telephone': np.random.choice(['A191', 'A192'], n_samples),
+            'foreign_worker': np.random.choice(['A201', 'A202'], n_samples),
+            'credit': np.random.choice([0, 1], n_samples, p=[0.3, 0.7])
+        })
 
     # Rename columns to be more Pythonic and avoid spaces
     df.columns = df.columns.str.replace(
