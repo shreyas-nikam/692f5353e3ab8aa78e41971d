@@ -185,7 +185,8 @@ def main():
         with st.spinner("Initializing SHAP Explainer (this may take a moment)..."):
             try:
                 # Create a masker for the background data
-                masker = shap.maskers.Independent(data=st.session_state.X_train_df)
+                masker = shap.maskers.Independent(
+                    data=st.session_state.X_train_df)
                 st.session_state.shap_explainer_baseline = shap.LinearExplainer(
                     model=baseline_model,
                     masker=masker
